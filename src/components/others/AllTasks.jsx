@@ -1,46 +1,138 @@
-import React, { useContext } from "react";
-import { AuthContext } from "../../context/AuthProvider";
-
-const AllTasks = () => {
-  const [userData,setUserData]= useContext(AuthContext);
-  return (
-    <div className="bg-[#1c1c1c] rounded-md p-5 mt-5">
-      <div className="bg-red-400  mb-3 py-3 px-4 rounded h-17 flex justify-between">
-        <h2 className="text-lg font-medium w-1/5 ">Employee Name</h2>
-        <h3 className="text-lg font-medium w-1/5 ">New Tasks</h3>
-        <h5 className="text-lg font-medium w-1/5 ">Active Tasks</h5>
-        <h5 className="text-lg font-medium w-1/5 ">Completed Tasks</h5>
-        <h5 className="text-lg font-medium w-1/5 ">Failed Tasks</h5>
-      </div>
-
-      <div id="AllTasks" className=" overflow-auto">
-        {userData.map((elem, index) => {
-          return (
-            <div
-              key={index}
-              className=" mb-3 border-2 py-3 px-4 flex h-25 border-emerald-400 rounded-md justify-between"
-            >
-              <h2 className="text-lg font-medium w-1/5 text-white ">
-                {elem.name}
-              </h2>
-              <h3 className="w-1/5  text-blue-600">
-                {elem.taskCounts.newTask}
-              </h3>
-              <h5 className="w-1/5 text-lg font-medium  text-yellow-400">
-                {elem.taskCounts.active}
-              </h5>
-              <h5 className="w-1/5 text-lg font-medium  text-white">
-                {elem.taskCounts.completed}
-              </h5>
-              <h5 className="w-1/5 text-lg font-medium  text-red-500">
-                {elem.taskCounts.failed}
-              </h5>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-export default AllTasks;
+import React, { useContext } from "react";
+
+import { AuthContext } from "../../context/AuthProvider";
+
+
+
+const AllTasks = () => {
+
+  const [userData] = useContext(AuthContext);
+
+  
+
+  return (
+
+    <div className="card p-6 mt-8 overflow-x-auto">
+
+      {/* Desktop View */}
+
+      <div className="hidden md:block">
+
+        <div className="grid grid-cols-5 gap-4 mb-6 text-gray-400 text-sm">
+
+          <h3>Employee Name</h3>
+
+          <h3>New Tasks</h3>
+
+          <h3>Active Tasks</h3>
+
+          <h3>Completed Tasks</h3>
+
+          <h3>Failed Tasks</h3>
+
+        </div>
+
+
+
+        <div className="space-y-4">
+
+          {userData.map((elem, index) => (
+
+            <div key={index} className="grid grid-cols-5 gap-4 p-4 border border-[#00ff0030] rounded-lg hover:border-[#00ff00] transition-colors">
+
+              <p className="text-white">{elem.name}</p>
+
+              <p className="text-[#00ff00]">{elem.taskCounts.newTask}</p>
+
+              <p className="text-blue-400">{elem.taskCounts.active}</p>
+
+              <p className="text-green-400">{elem.taskCounts.completed}</p>
+
+              <p className="text-red-400">{elem.taskCounts.failed}</p>
+
+            </div>
+
+          ))}
+
+        </div>
+
+      </div>
+
+
+
+      {/* Mobile View */}
+
+      <div className="md:hidden space-y-6">
+
+        {userData.map((elem, index) => (
+
+          <div key={index} className="border border-[#00ff0030] rounded-lg p-4 hover:border-[#00ff00] transition-colors space-y-3">
+
+            <div className="flex justify-between items-center border-b border-[#00ff0015] pb-2">
+
+              <h3 className="text-white font-medium">{elem.name}</h3>
+
+            </div>
+
+            
+
+            <div className="grid grid-cols-2 gap-3">
+
+              <div className="space-y-1">
+
+                <p className="text-xs text-gray-400">New Tasks</p>
+
+                <p className="text-[#00ff00] font-medium">{elem.taskCounts.newTask}</p>
+
+              </div>
+
+              
+
+              <div className="space-y-1">
+
+                <p className="text-xs text-gray-400">Active Tasks</p>
+
+                <p className="text-blue-400 font-medium">{elem.taskCounts.active}</p>
+
+              </div>
+
+              
+
+              <div className="space-y-1">
+
+                <p className="text-xs text-gray-400">Completed Tasks</p>
+
+                <p className="text-green-400 font-medium">{elem.taskCounts.completed}</p>
+
+              </div>
+
+              
+
+              <div className="space-y-1">
+
+                <p className="text-xs text-gray-400">Failed Tasks</p>
+
+                <p className="text-red-400 font-medium">{elem.taskCounts.failed}</p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        ))}
+
+      </div>
+
+    </div>
+
+  );
+
+};
+
+
+
+export default AllTasks;
+
+
+
