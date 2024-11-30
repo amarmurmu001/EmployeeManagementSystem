@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 
 import { AuthContext } from "../../context/AuthProvider";
 
@@ -12,143 +12,151 @@ import FailedTasks from "./FailedTasks";
 
 import toast from 'react-hot-toast';
 
+import { supabase } from '../../config/supabaseClient';
+
 
 
 const TaskList = ({ data }) => {
 
   const [userData, setUserData] = useContext(AuthContext);
 
+  const [tasks, setTasks] = useState([]);
+
+  const [isLoading, setIsLoading] = useState(true);
 
 
-  const updateTaskStatus = (taskNumber, newStatus) => {
+
+  const fetchTasks = async () => {
 
     try {
 
-      // Create deep copy of userData
+      setIsLoading(true);
 
-      const updatedUserData = JSON.parse(JSON.stringify(userData));
+      const { data: taskData, error } = await supabase
 
-      
+        .from('tasks')
 
-      // Find current employee
+        .select(`
 
-      const employeeIndex = updatedUserData.findIndex(user => user.id === data.id);
+          *,
 
-      
+          users (
 
-      if (employeeIndex !== -1) {
+            id,
 
-        // Find and update the specific task
+            name,
 
-        const taskIndex = updatedUserData[employeeIndex].tasks.findIndex(
+            email,
 
-          task => task.taskNumber === taskNumber
+            task_counts
 
-        );
+          )
 
+        `)
 
+        .eq('user_id', data.id)
 
-        if (taskIndex !== -1) {
-
-          // Update task status
-
-          updatedUserData[employeeIndex].tasks[taskIndex] = {
-
-            ...updatedUserData[employeeIndex].tasks[taskIndex],
-
-            ...newStatus
-
-          };
+        .order('created_at', { ascending: false });
 
 
 
-          // Recalculate task counts
-
-          const tasks = updatedUserData[employeeIndex].tasks;
-
-          updatedUserData[employeeIndex].taskCounts = {
-
-            active: tasks.filter(t => t.active).length,
-
-            completed: tasks.filter(t => t.completed).length,
-
-            newTask: tasks.filter(t => t.newTask).length,
-
-            failed: tasks.filter(t => t.failed).length,
-
-          };
+      if (error) throw error;
 
 
 
-          // Update context and localStorage for all employees
+      const formattedTasks = taskData.map(task => ({
 
-          setUserData(updatedUserData);
+        id: task.id,
 
-          localStorage.setItem('employees', JSON.stringify(updatedUserData));
+        taskNumber: task.task_number,
 
-          
+        title: task.title,
 
-          // Update loggedInUser without changing the login state
+        description: task.description,
 
-          const updatedEmployee = updatedUserData[employeeIndex];
+        date: task.date,
 
-          const currentLoggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+        category: task.category,
 
-          const updatedLoggedInUser = {
+        active: task.active,
 
-            ...currentLoggedInUser,
+        completed: task.completed,
 
-            tasks: updatedEmployee.tasks,
+        newTask: task.new_task,
 
-            taskCounts: updatedEmployee.taskCounts
+        failed: task.failed,
 
-          };
+        userId: task.user_id,
 
-          localStorage.setItem('loggedInUser', JSON.stringify(updatedLoggedInUser));
+        employeeName: task.users?.name || 'Unknown',
+
+        employeeEmail: task.users?.email || 'Unknown',
+
+        taskCounts: task.users?.task_counts
+
+      }));
 
 
 
-          // Show success message
+      // Calculate current task counts
 
-          toast.success('Task status updated successfully!', {
+      const currentTaskCounts = formattedTasks.reduce((acc, task) => ({
 
-            style: {
+        active: acc.active + (task.active ? 1 : 0),
 
-              border: '1px solid #00ff00',
+        completed: acc.completed + (task.completed ? 1 : 0),
 
-              padding: '16px',
+        newTask: acc.newTask + (task.newTask ? 1 : 0),
 
-              background: '#000',
+        failed: acc.failed + (task.failed ? 1 : 0)
 
-              color: '#fff',
+      }), { active: 0, completed: 0, newTask: 0, failed: 0 });
 
-            },
 
-          });
+
+      // Update user's task counts if they don't match
+
+      if (JSON.stringify(currentTaskCounts) !== JSON.stringify(data.taskCounts)) {
+
+        const { error: updateError } = await supabase
+
+          .from('users')
+
+          .update({ task_counts: currentTaskCounts })
+
+          .eq('id', data.id);
+
+
+
+        if (!updateError) {
+
+          // Update local userData state with new counts
+
+          setUserData(prevData => prevData.map(user => 
+
+            user.id === data.id 
+
+              ? { ...user, taskCounts: currentTaskCounts }
+
+              : user
+
+          ));
 
         }
 
       }
 
+
+
+      setTasks(formattedTasks);
+
+      setIsLoading(false);
+
     } catch (error) {
 
-      console.error('Error updating task status:', error);
+      console.error('Error fetching tasks:', error);
 
-      toast.error('Failed to update task status', {
-
-        style: {
-
-          border: '1px solid #ff0000',
-
-          padding: '16px',
-
-          background: '#000',
-
-          color: '#fff',
-
-        },
-
-      });
+      toast.error('Failed to fetch tasks');
 
     }
 
@@ -156,25 +164,245 @@ const TaskList = ({ data }) => {
 
 
 
-  return (
+  useEffect(() => {
 
-    <div className="card mt-8 p-6">
+    fetchTasks();
 
-      <h2 className="text-xl md:text-2xl font-bold text-white mb-6">Your Tasks</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto max-h-[600px] pr-2">
 
-        {data.tasks?.map((element, index) => {
+    const tasksChannel = supabase
 
-          if (element.newTask) {
+      .channel('custom-employee-channel')
 
-            return (
+      .on(
 
-              <NewTasks 
+        'postgres_changes',
 
-                key={`new-${element.taskNumber}`}
+        {
 
-                data={element} 
+          event: '*',
+
+          schema: 'public',
+
+          table: 'tasks',
+
+          filter: `user_id=eq.${data.id}`
+
+        },
+
+        (payload) => {
+
+          console.log('Real-time update:', payload);
+
+          fetchTasks();
+
+        }
+
+      )
+
+      .subscribe();
+
+
+
+    return () => {
+
+      supabase.removeChannel(tasksChannel);
+
+    };
+
+  }, [data.id]);
+
+
+
+  const updateTaskStatus = async (taskNumber, newStatus) => {
+
+    try {
+
+      // Update task in Supabase
+
+      const { error: updateError } = await supabase
+
+        .from('tasks')
+
+        .update({
+
+          active: newStatus.active,
+
+          completed: newStatus.completed,
+
+          new_task: newStatus.newTask,
+
+          failed: newStatus.failed
+
+        })
+
+        .eq('task_number', taskNumber)
+
+        .eq('user_id', data.id);
+
+
+
+      if (updateError) throw updateError;
+
+
+
+      // Update local tasks state
+
+      const updatedTasks = tasks.map(task => 
+
+        task.taskNumber === taskNumber ? { ...task, ...newStatus } : task
+
+      );
+
+
+
+      // Calculate new task counts
+
+      const taskCounts = updatedTasks.reduce((acc, task) => ({
+
+        active: acc.active + (task.active ? 1 : 0),
+
+        completed: acc.completed + (task.completed ? 1 : 0),
+
+        newTask: acc.newTask + (task.newTask ? 1 : 0),
+
+        failed: acc.failed + (task.failed ? 1 : 0)
+
+      }), { active: 0, completed: 0, newTask: 0, failed: 0 });
+
+
+
+      // Update user's task counts in Supabase
+
+      const { error: userUpdateError } = await supabase
+
+        .from('users')
+
+        .update({ task_counts: taskCounts })
+
+        .eq('id', data.id);
+
+
+
+      if (userUpdateError) throw userUpdateError;
+
+
+
+      // Update local states
+
+      setTasks(updatedTasks);
+
+      setUserData(prevData => prevData.map(user => 
+
+        user.id === data.id 
+
+          ? { ...user, taskCounts }
+
+          : user
+
+      ));
+
+
+
+      toast.success('Task status updated successfully!');
+
+    } catch (error) {
+
+      console.error('Error updating task status:', error);
+
+      toast.error('Failed to update task status');
+
+      // Refresh tasks to ensure consistency
+
+      fetchTasks();
+
+    }
+
+  };
+
+
+
+  if (isLoading) {
+
+    return <div className="text-[#00ff00]">Loading tasks...</div>;
+
+  }
+
+
+
+  const renderTaskSection = (title, filterFn, TaskComponent) => (
+
+    <div className="mt-8">
+
+      <h3 className="text-xl font-semibold text-white mb-4">{title}</h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {tasks.filter(filterFn).map((task) => (
+
+          <div
+
+            key={task.taskNumber}
+
+            className="p-6 bg-black/50 border border-[#00ff0030] rounded-lg space-y-4"
+
+          >
+
+            <div className="flex justify-between items-start">
+
+              <h3 className="text-lg font-semibold text-white">{task.title}</h3>
+
+              <div className="flex items-center gap-2">
+
+                <span className={`px-2 py-1 rounded text-xs ${
+
+                  task.active ? 'bg-blue-500/20 text-blue-500' :
+
+                  task.completed ? 'bg-green-500/20 text-green-500' :
+
+                  task.failed ? 'bg-red-500/20 text-red-500' :
+
+                  'bg-yellow-500/20 text-yellow-500'
+
+                }`}>
+
+                  {task.active ? 'Active' :
+
+                   task.completed ? 'Completed' :
+
+                   task.failed ? 'Failed' :
+
+                   'New'}
+
+                </span>
+
+              </div>
+
+            </div>
+
+
+
+            <div className="space-y-2">
+
+              <p className="text-gray-400 text-sm">{task.description}</p>
+
+              <div className="flex justify-between text-sm">
+
+                <span className="text-[#00ff00]">{task.category}</span>
+
+                <span className="text-gray-400">{task.date}</span>
+
+              </div>
+
+            </div>
+
+
+
+            {TaskComponent && (
+
+              <TaskComponent
+
+                data={task}
 
                 employeeData={data}
 
@@ -182,67 +410,41 @@ const TaskList = ({ data }) => {
 
               />
 
-            );
+            )}
 
-          }
+          </div>
 
-          if (element.active) {
+        ))}
 
-            return (
+        {tasks.filter(filterFn).length === 0 && (
 
-              <AcceptTasks 
+          <div className="col-span-full text-center text-gray-400">
 
-                key={`active-${element.taskNumber}`}
+            No {title.toLowerCase()} found
 
-                data={element} 
+          </div>
 
-                employeeData={data}
-
-                updateTaskStatus={updateTaskStatus}
-
-              />
-
-            );
-
-          }
-
-          if (element.completed) {
-
-            return (
-
-              <CompleteTasks 
-
-                key={`complete-${element.taskNumber}`}
-
-                data={element} 
-
-              />
-
-            );
-
-          }
-
-          if (element.failed) {
-
-            return (
-
-              <FailedTasks 
-
-                key={`failed-${element.taskNumber}`}
-
-                data={element} 
-
-              />
-
-            );
-
-          }
-
-          return null;
-
-        })}
+        )}
 
       </div>
+
+    </div>
+
+  );
+
+
+
+  return (
+
+    <div className="mt-8 space-y-8">
+
+      {renderTaskSection("Active Tasks", task => task.active, AcceptTasks)}
+
+      {renderTaskSection("New Tasks", task => task.newTask, NewTasks)}
+
+      {renderTaskSection("Completed Tasks", task => task.completed, CompleteTasks)}
+
+      {renderTaskSection("Failed Tasks", task => task.failed, FailedTasks)}
 
     </div>
 

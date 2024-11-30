@@ -1,84 +1,207 @@
-import React, { useContext, useEffect, useState } from "react";
-import Login from "./components/Auth/Login";
-import EmployeeDashboard from "./components/Dashboard/EmployeeDashboard";
-import AdminDashboard from "./components/Dashboard/AdminDashboard";
-import { getLocalStorage, setLocalStorage } from "./utils/localStorage";
-import { AuthContext } from "./context/AuthProvider";
-import { parse } from "postcss";
-import { Toaster } from 'react-hot-toast';
-
-const App = () => {
-  const [user, setUser] = useState(null);
-  const [userData, setUserData, adminData, setAdminData] =
-    useContext(AuthContext);
-
-  // This 'loggedInUserData' state is used to store the state of data of the currently logged in User.
-  const [loggedInUserData, setloggedInUserData] = useState(null);
-
-  useEffect(() => {
-    // Sets the Data from time to time in the Local storage. Uses the "setLocalStorage" function, defined in localStorage.jsx.
-    setLocalStorage();
-  }, []);
-
-  useEffect(() => {
-    const newUser = localStorage.getItem("loggedInUser");
-    if (newUser) {
-      const parsedUser = JSON.parse(newUser);
-      setUser(parsedUser.role);
-      setloggedInUserData(parsedUser.data);
-    }
-  }, [userData]);
-
-
-  const handleLogin = (email, password) => {
-    if (email === "saksham8@gmail.com" && password === "sak") {
-      // setting 'user' state to admin, coz admin is currently logged in.
-      setUser("admin");
-      // Setting loggedInUserData to adminData
-      // We use .find() in adminData so we can scan the data of specific admin that has signed in, in case of multiple admins.
-      const admin = adminData[0];
-
-      if (admin) {
-        setloggedInUserData(admin);
-        localStorage.setItem(
-          "loggedInUser",
-          JSON.stringify({ role: "admin", data: admin })
-        );
-        
-      }
-      // *************************
-    } else if (userData) {
-      const employee = userData.find((e) => {
-        if (email === e.email && password === e.password) return true;
-        else return false;
-      });
-
-      if (employee) {
-        setUser("employee");
-        setloggedInUserData(employee);
-        localStorage.setItem(
-          "loggedInUser",
-          JSON.stringify({ role: "employee", data: employee })
-        );
-      }
-    } else {
-      alert("Invalid Credentials");
-    }
-  };
-
-  return (
-    <>
-      <Toaster position="top-right" />
-      {!user ? (
-        <Login handleLogin={handleLogin} />
-      ) : user === "admin" ? (
-        <AdminDashboard changeUser={setUser} data={loggedInUserData} />
-      ) : user == "employee" ? (
-        <EmployeeDashboard changeUser={setUser} data={loggedInUserData} />
-      ) : null}
-    </>
-  );
-};
-
-export default App;
-
+import React, { useState, useEffect, useContext } from "react";
+
+import { AuthContext } from "./context/AuthProvider";
+
+import Login from "./components/Auth/Login";
+
+import AdminDashboard from "./components/Dashboard/AdminDashboard";
+
+import EmployeeDashboard from "./components/Dashboard/EmployeeDashboard";
+
+import { Toaster } from 'react-hot-toast';
+
+import { supabase } from './config/supabaseClient';
+
+
+
+const App = () => {
+
+  const [user, setUser] = useState(null);
+
+  const [userData, setUserData] = useContext(AuthContext);
+
+  const [loggedInUserData, setLoggedInUserData] = useState(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+
+
+  useEffect(() => {
+
+    // Check for logged in user in localStorage and session
+
+    const checkUser = async () => {
+
+      try {
+
+        const storedUser = localStorage.getItem("loggedInUser");
+
+        
+
+        if (storedUser) {
+
+          const parsedUser = JSON.parse(storedUser);
+
+          
+
+          // Verify user still exists in database
+
+          const { data: dbUser, error } = await supabase
+
+            .from('users')
+
+            .select('*')
+
+            .eq('id', parsedUser.data.id)
+
+            .single();
+
+
+
+          if (error) {
+
+            throw error;
+
+          }
+
+
+
+          if (dbUser) {
+
+            setUser(parsedUser.role);
+
+            setLoggedInUserData(parsedUser.data);
+
+          } else {
+
+            // User no longer exists in database
+
+            localStorage.removeItem("loggedInUser");
+
+          }
+
+        }
+
+      } catch (error) {
+
+        console.error('Session check error:', error);
+
+        localStorage.removeItem("loggedInUser");
+
+      } finally {
+
+        setIsLoading(false);
+
+      }
+
+    };
+
+
+
+    checkUser();
+
+  }, []);
+
+
+
+  const handleLogin = (role, data) => {
+
+    const userInfo = { role, data };
+
+    localStorage.setItem("loggedInUser", JSON.stringify(userInfo));
+
+    setUser(role);
+
+    setLoggedInUserData(data);
+
+  };
+
+
+
+  const handleLogout = () => {
+
+    localStorage.removeItem("loggedInUser");
+
+    setUser(null);
+
+    setLoggedInUserData(null);
+
+  };
+
+
+
+  if (isLoading) {
+
+    return (
+
+      <div className="min-h-screen bg-black flex items-center justify-center">
+
+        <div className="text-[#00ff00]">Loading...</div>
+
+      </div>
+
+    );
+
+  }
+
+
+
+  return (
+
+    <>
+
+      <Toaster position="top-right" />
+
+      {!user ? (
+
+        <Login handleLogin={handleLogin} />
+
+      ) : user === "admin" ? (
+
+        <AdminDashboard data={loggedInUserData} changeUser={handleLogout} />
+
+      ) : (
+
+        <EmployeeDashboard data={loggedInUserData} changeUser={handleLogout} />
+
+      )}
+
+    </>
+
+  );
+
+};
+
+
+
+export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

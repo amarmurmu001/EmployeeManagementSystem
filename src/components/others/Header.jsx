@@ -12,8 +12,6 @@ const Header = ({ data, changeUser, isAdmin }) => {
 
   const handleLogout = () => {
 
-    localStorage.setItem("loggedInUser", "");
-
     changeUser("");
 
   };

@@ -4,7 +4,7 @@ import { AuthContext } from "../../context/AuthProvider";
 
 import toast from 'react-hot-toast';
 
-
+import { supabase } from '../../config/supabaseClient';
 
 const CreateEmployee = ({ onClose }) => {
 
@@ -16,111 +16,135 @@ const CreateEmployee = ({ onClose }) => {
 
   const [password, setPassword] = useState("");
 
+  const [isLoading, setIsLoading] = useState(false);
 
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
 
     e.preventDefault();
 
+    setIsLoading(true);
 
 
-    // Validate inputs
 
-    if (!name || !email || !password) {
+    try {
 
-      toast.error('All fields are required!', {
+      // Validate inputs
 
-        style: {
+      if (!name || !email || !password) {
 
-          border: '1px solid #ff0000',
+        throw new Error('All fields are required!');
 
-          padding: '16px',
+      }
 
-          background: '#000',
 
-          color: '#fff',
 
-        },
+      // Check if email already exists
 
-      });
+      const { data: existingUser, error: checkError } = await supabase
 
-      return;
+        .from('users')
+
+        .select('id')
+
+        .eq('email', email)
+
+        .maybeSingle();
+
+
+
+      if (existingUser) {
+
+        throw new Error('Email already exists!');
+
+      }
+
+
+
+      // Create new employee in Supabase
+
+      const { data: newEmployee, error: createError } = await supabase
+
+        .from('users')
+
+        .insert([{
+
+          name,
+
+          email,
+
+          password,
+
+          is_admin: false,
+
+          task_counts: {
+
+            active: 0,
+
+            completed: 0,
+
+            newTask: 0,
+
+            failed: 0
+
+          }
+
+        }])
+
+        .select()
+
+        .single();
+
+
+
+      if (createError) {
+
+        console.error('Create error:', createError);
+
+        throw new Error('Failed to create employee');
+
+      }
+
+
+
+      // Update context with new employee
+
+      setUserData(prevData => [...prevData, {
+
+        id: newEmployee.id,
+
+        name: newEmployee.name,
+
+        email: newEmployee.email,
+
+        password: newEmployee.password,
+
+        isAdmin: newEmployee.is_admin,
+
+        taskCounts: newEmployee.task_counts,
+
+        tasks: []
+
+      }]);
+
+
+
+      toast.success('Employee created successfully!');
+
+      onClose();
+
+    } catch (error) {
+
+      console.error('Error:', error);
+
+      toast.error(error.message || 'Failed to create employee');
+
+    } finally {
+
+      setIsLoading(false);
 
     }
-
-
-
-    // Check if email already exists
-
-    const emailExists = userData.some(user => user.email === email);
-
-    if (emailExists) {
-
-      toast.error('Email already exists!', {
-
-        style: {
-
-          border: '1px solid #ff0000',
-
-          padding: '16px',
-
-          background: '#000',
-
-          color: '#fff',
-
-        },
-
-      });
-
-      return;
-
-    }
-
-
-
-    const newEmployee = {
-
-      id: Math.max(...userData.map(u => u.id)) + 1,
-
-      name,
-
-      email,
-
-      password,
-
-      taskCounts: {
-
-        active: 0,
-
-        completed: 0,
-
-        newTask: 0,
-
-        failed: 0,
-
-      },
-
-      tasks: [],
-
-    };
-
-
-
-    const updatedUserData = [...userData, newEmployee];
-
-    setUserData(updatedUserData);
-
-    localStorage.setItem('employees', JSON.stringify(updatedUserData));
-
-
-
-    toast.success('Employee created successfully!');
-
-    
-
-    // Close the overlay after successful creation
-
-    onClose();
 
   };
 

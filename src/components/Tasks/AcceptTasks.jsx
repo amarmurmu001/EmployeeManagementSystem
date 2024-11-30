@@ -42,55 +42,31 @@ const AcceptTasks = ({ data, employeeData, updateTaskStatus }) => {
 
   return (
 
-    <div className="bg-black/90 border border-[#00ff0030] hover:border-[#00ff00] transition-colors rounded-lg p-6">
+    <div className="mt-6 flex gap-3">
 
-      <div className="flex justify-between items-center">
+      <button 
 
-        <span className="px-3 py-1 text-xs bg-[#00ff0015] text-[#00ff00] rounded-full">
+        onClick={handleComplete}
 
-          {data.category}
+        className="flex-1 px-4 py-2 bg-[#00ff0015] hover:bg-[#00ff0030] text-[#00ff00] text-sm rounded-lg transition-colors"
 
-        </span>
+      >
 
-        <span className="text-sm text-gray-400">{data.date}</span>
+        Complete
 
-      </div>
+      </button>
 
+      <button 
 
+        onClick={handleFailed}
 
-      <h3 className="mt-4 text-lg font-semibold text-white">{data.title}</h3>
+        className="flex-1 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm rounded-lg transition-colors"
 
-      <p className="mt-2 text-sm text-gray-400">{data.description}</p>
+      >
 
+        Failed
 
-
-      <div className="mt-6 flex gap-3">
-
-        <button 
-
-          onClick={handleComplete}
-
-          className="flex-1 px-4 py-2 bg-[#00ff0015] hover:bg-[#00ff0030] text-[#00ff00] text-sm rounded-lg transition-colors"
-
-        >
-
-          Complete
-
-        </button>
-
-        <button 
-
-          onClick={handleFailed}
-
-          className="flex-1 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm rounded-lg transition-colors"
-
-        >
-
-          Failed
-
-        </button>
-
-      </div>
+      </button>
 
     </div>
 

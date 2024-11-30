@@ -6,21 +6,17 @@ const NewTasks = ({ data, employeeData, updateTaskStatus }) => {
 
   const handleAccept = () => {
 
-    if (updateTaskStatus) {
+    updateTaskStatus(data.taskNumber, {
 
-      updateTaskStatus(data.taskNumber, {
+      active: true,
 
-        active: true,
+      completed: false,
 
-        completed: false,
+      newTask: false,
 
-        newTask: false,
+      failed: false
 
-        failed: false
-
-      });
-
-    }
+    });
 
   };
 
@@ -28,43 +24,19 @@ const NewTasks = ({ data, employeeData, updateTaskStatus }) => {
 
   return (
 
-    <div className="bg-black/90 border border-[#00ff0030] hover:border-[#00ff00] transition-colors rounded-lg p-6">
+    <div className="mt-6">
 
-      <div className="flex justify-between items-center">
+      <button
 
-        <span className="px-3 py-1 text-xs bg-[#00ff0015] text-[#00ff00] rounded-full">
+        onClick={handleAccept}
 
-          {data.category}
+        className="w-full px-4 py-2 bg-[#00ff0015] hover:bg-[#00ff0030] text-[#00ff00] text-sm rounded-lg transition-colors"
 
-        </span>
+      >
 
-        <span className="text-sm text-gray-400">{data.date}</span>
+        Accept Task
 
-      </div>
-
-
-
-      <h3 className="mt-4 text-lg font-semibold text-white">{data.title}</h3>
-
-      <p className="mt-2 text-sm text-gray-400">{data.description}</p>
-
-
-
-      <div className="mt-6">
-
-        <button
-
-          onClick={handleAccept}
-
-          className="w-full px-4 py-2 bg-[#00ff0015] hover:bg-[#00ff0030] text-[#00ff00] text-sm rounded-lg transition-colors"
-
-        >
-
-          Accept Task
-
-        </button>
-
-      </div>
+      </button>
 
     </div>
 
