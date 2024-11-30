@@ -28,7 +28,7 @@ const Header = ({ data, changeUser, isAdmin }) => {
 
           <h1 className="text-gray-400">Welcome back,</h1>
 
-          <h2 className="text-2xl font-bold text-white">{data.name}</h2>
+          <h2 className="text-2xl font-bold text-white">{data.name} 👋</h2>
 
         </div>
 
@@ -40,11 +40,11 @@ const Header = ({ data, changeUser, isAdmin }) => {
 
               onClick={() => setShowCreateEmployee(true)}
 
-              className="px-4 py-2 bg-[#00ff0015] hover:bg-[#00ff0030] text-[#00ff00] text-sm rounded-lg transition-colors"
+              className="px-4  py-2 bg-[#00ff0015] hover:bg-[#00ff0030] text-[#00ff00] text-sm rounded-lg transition-colors"
 
             >
 
-              Add Employee
+              Add
 
             </button>
 
