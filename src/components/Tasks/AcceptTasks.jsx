@@ -1,28 +1,109 @@
 import React from "react";
 
-const AcceptTasks = ({ data }) => {
+
+
+const AcceptTasks = ({ data, employeeData, updateTaskStatus }) => {
+
+  const handleComplete = () => {
+
+    updateTaskStatus(data.taskNumber, {
+
+      active: false,
+
+      completed: true,
+
+      newTask: false,
+
+      failed: false
+
+    });
+
+  };
+
+
+
+  const handleFailed = () => {
+
+    updateTaskStatus(data.taskNumber, {
+
+      active: false,
+
+      completed: false,
+
+      newTask: false,
+
+      failed: true
+
+    });
+
+  };
+
+
+
   return (
-    <div className=" flex-shrink-0 bg-red-400 w-[400px] py-5 px-3 h-full rounded-xl">
+
+    <div className="bg-black/90 border border-[#00ff0030] hover:border-[#00ff00] transition-colors rounded-lg p-6">
+
       <div className="flex justify-between items-center">
-        <h3 className="bg-red-700 text-sm rounded-lg px-3 py-1">
+
+        <span className="px-3 py-1 text-xs bg-[#00ff0015] text-[#00ff00] rounded-full">
+
           {data.category}
-        </h3>
-        <h4 className="text-sm">{data.date}</h4>
+
+        </span>
+
+        <span className="text-sm text-gray-400">{data.date}</span>
+
       </div>
 
-      <h2 className="mt-5 font-semibold text-2xl">{data.title}</h2>
-      <p className="text-sm mt-3">{data.description}</p>
 
-      <div className="flex justify-between mt-4">
-        <button className="py-1 px-2 bg-green-600 rounded text-sm ">
-          Mark as Completed
+
+      <h3 className="mt-4 text-lg font-semibold text-white">{data.title}</h3>
+
+      <p className="mt-2 text-sm text-gray-400">{data.description}</p>
+
+
+
+      <div className="mt-6 flex gap-3">
+
+        <button 
+
+          onClick={handleComplete}
+
+          className="flex-1 px-4 py-2 bg-[#00ff0015] hover:bg-[#00ff0030] text-[#00ff00] text-sm rounded-lg transition-colors"
+
+        >
+
+          Complete
+
         </button>
-        <button className="py-1 px-2 bg-red-600 rounded text-sm ">
-          Mark as Failed
+
+        <button 
+
+          onClick={handleFailed}
+
+          className="flex-1 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm rounded-lg transition-colors"
+
+        >
+
+          Failed
+
         </button>
+
       </div>
+
     </div>
+
   );
+
 };
 
+
+
 export default AcceptTasks;
+
+
+
+
+
+
