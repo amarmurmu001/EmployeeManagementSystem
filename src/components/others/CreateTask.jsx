@@ -1,39 +1,23 @@
 import React, { useContext, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { AuthContext } from "../../context/AuthProvider";
 import { supabase } from '../../config/supabaseClient';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
 
 const CreateTask = () => {
   const [userData] = useContext(AuthContext);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(null);
   const [empName, setEmpName] = useState("");
   const [category, setCategory] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const formattedDate = date ? format(new Date(date), 'MMM dd, yyyy') : '';
-
-  const handleDateChange = (e) => {
-    const selectedDate = e.target.value;
-    setDate(selectedDate);
-    setShowDatePicker(false);
-  };
-
-  const handleDateClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowDatePicker(true);
-  };
-
-  const today = new Date().toISOString().split('T')[0];
 
   const resetForm = () => {
     setTitle("");
     setDesc("");
-    setDate("");
+    setDate(null);
     setEmpName("");
     setCategory("");
   };
@@ -46,6 +30,9 @@ const CreateTask = () => {
       if (!title || !desc || !date || !empName || !category) {
         throw new Error('All fields are required');
       }
+
+      // Convert date to ISO string for Supabase
+      const formattedDate = date.toISOString().split('T')[0];
 
       // Find user by name
       const { data: user, error: userError } = await supabase
@@ -67,7 +54,7 @@ const CreateTask = () => {
           task_number: taskNumber,
           title,
           description: desc,
-          date,
+          date: formattedDate,
           category,
           user_id: user.id,
           active: false,
@@ -146,35 +133,20 @@ const CreateTask = () => {
 
           <div className="space-y-2">
             <label className="text-sm text-gray-300">Date</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formattedDate}
-                onClick={handleDateClick}
-                readOnly
-                className="w-full px-4 py-2 bg-black/50 border border-[#00ff0030] focus:border-[#00ff00] text-white rounded-lg outline-none transition-colors cursor-pointer"
-                placeholder="Select date"
-              />
-              {showDatePicker && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowDatePicker(false)}
+            <div className="w-full">
+              <DatePicker
+                selected={date}
+                onChange={(date) => setDate(date)}
+                minDate={new Date()}
+                placeholderText="Select date"
+                wrapperClassName="w-full"
+                calendarClassName="custom-calendar"
+                customInput={
+                  <input
+                    className="w-full px-4 py-2 bg-black/50 border border-[#00ff0030] focus:border-[#00ff00] text-white rounded-lg outline-none transition-colors"
                   />
-                  <div className="absolute top-full left-0 mt-1 z-50">
-                    <div className="bg-black/90 border border-[#00ff0030] rounded-lg p-4 shadow-lg">
-                      <input
-                        type="date"
-                        value={date}
-                        min={today}
-                        onChange={handleDateChange}
-                        className="w-full px-4 py-2 bg-black/50 border border-[#00ff0030] focus:border-[#00ff00] text-white rounded-lg outline-none transition-colors"
-                        onBlur={() => setShowDatePicker(false)}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+                }
+              />
             </div>
           </div>
         </div>
@@ -198,10 +170,46 @@ const CreateTask = () => {
           {isLoading ? 'Creating...' : 'Create Task'}
         </button>
       </form>
+      
+      <style jsx global>{`
+        .custom-calendar {
+          background-color: #121212 !important;
+          border: 1px solid #00ff0050 !important;
+          color: #fff !important;
+          font-family: inherit;
+        }
+        .react-datepicker__header {
+          background-color: #1e1e1e !important;
+          border-bottom: 1px solid #00ff0050 !important;
+        }
+        .react-datepicker__current-month,
+        .react-datepicker__day-name {
+          color: #00ff00 !important;
+        }
+        .react-datepicker__day {
+          color: #e0e0e0 !important;
+          background-color: transparent !important;
+        }
+        .react-datepicker__day:hover {
+          background-color: #00ff0030 !important;
+          color: #00ff00 !important;
+        }
+        .react-datepicker__day--selected {
+          background-color: #00ff0060 !important;
+          color: #000 !important;
+        }
+        .react-datepicker__day--outside-month {
+          color: #666 !important;
+        }
+        .react-datepicker__navigation {
+          background-color: transparent !important;
+        }
+        .react-datepicker__navigation-icon::before {
+          border-color: #00ff00 !important;
+        }
+      `}</style>
     </div>
   );
 };
 
 export default CreateTask;
-
-
